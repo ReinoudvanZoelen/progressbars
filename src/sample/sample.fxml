@@ -29,7 +29,7 @@
                 <Button layoutX="467.0" layoutY="129.0" mnemonicParsing="false" onAction="#StartCalculation3" prefHeight="31.0" prefWidth="200.0" text="Count to 50" />
 
                 <Button fx:id="cancelButton" layoutX="34.0" layoutY="176.0" mnemonicParsing="false" onAction="#StopThreads" prefHeight="31.0" prefWidth="633.0" text="Stop all threads" />
-            <Label fx:id="threadsRunning" layoutX="650.0" layoutY="14.0" text="Label" />
+            <CheckBox fx:id="multiplier" layoutX="556.0" layoutY="14.0" mnemonicParsing="false" onAction="#toggleMultiplier" text="2x Multiplier" />
             </children>
         </Pane>
     </children>

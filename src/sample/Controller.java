@@ -7,9 +7,9 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.input.MouseEvent;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ public class Controller implements Initializable {
     @FXML
     Label label3;
     @FXML
-    Label threadsRunning;
+    CheckBox multiplier;
 
     @FXML
     ProgressBar progressBar1;
@@ -71,10 +71,14 @@ public class Controller implements Initializable {
                     @Override
                     protected Void call() throws Exception {
 
-                        for (int i = 0; i <= countTo; i++) {
+                        int counter = countTo;
+
+                        if(multiplier.isSelected()) counter *= 2;
+
+                        for (int i = 0; i <= counter; i++) {
                             System.out.println("Progress: " + i);
-                            updateMessage("Progress: " + i + " out of " + countTo);
-                            updateProgress(i, countTo);
+                            updateMessage("Progress: " + i + " out of " + counter);
+                            updateProgress(i, counter);
                             Thread.sleep(1000);
                         }
 
@@ -134,6 +138,14 @@ public class Controller implements Initializable {
             System.out.println("A thread is still running. Try again.");
         } else {
             System.out.println("0 threads are running.");
+        }
+    }
+
+    @FXML
+    public void toggleMultiplier(){
+        System.out.println("Restarting threads with multiplier");
+        for(Service s:threads){
+            s.restart();
         }
     }
 }
