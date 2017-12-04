@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<GridPane alignment="center" hgap="10" prefHeight="300.0" prefWidth="700.0" vgap="10" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.Controller">
+    <columnConstraints>
+        <ColumnConstraints />
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints />
+        <RowConstraints />
+        <RowConstraints />
+    </rowConstraints>
+    <children>
+        <Pane prefHeight="239.0" prefWidth="700.0">
+            <children>
+                <Label fx:id="label1" layoutX="34.0" layoutY="42.0" prefHeight="21.0" prefWidth="200.0" text="Label" />
+                <ProgressBar fx:id="progressBar1" layoutX="34.0" layoutY="86.0" prefWidth="200.0" progress="0.0" />
+                <Button layoutX="34.0" layoutY="129.0" mnemonicParsing="false" onAction="#StartCalculation1" prefHeight="31.0" prefWidth="200.0" text="Count to 5" />
+
+                <Label fx:id="label2" layoutX="250.0" layoutY="42.0" prefHeight="21.0" prefWidth="200.0" text="Label" />
+                <ProgressBar fx:id="progressBar2" layoutX="251.0" layoutY="86.0" prefWidth="200.0" progress="0.0" />
+                <Button layoutX="250.0" layoutY="129.0" mnemonicParsing="false" onAction="#StartCalculation2" prefHeight="31.0" prefWidth="200.0" text="Count to 10" />
+
+                <Label fx:id="label3" layoutX="467.0" layoutY="42.0" prefHeight="21.0" prefWidth="200.0" text="Label" />
+                <ProgressBar fx:id="progressBar3" layoutX="467.0" layoutY="86.0" prefWidth="200.0" progress="0.0" />
+                <Button layoutX="467.0" layoutY="129.0" mnemonicParsing="false" onAction="#StartCalculation3" prefHeight="31.0" prefWidth="200.0" text="Count to 50" />
+
+                <Button fx:id="cancelButton" layoutX="34.0" layoutY="176.0" mnemonicParsing="false" onAction="#StopThreads" prefHeight="31.0" prefWidth="633.0" text="Stop all threads" />
+            <Label fx:id="threadsRunning" layoutX="650.0" layoutY="14.0" text="Label" />
+            </children>
+        </Pane>
+    </children>
+</GridPane>
