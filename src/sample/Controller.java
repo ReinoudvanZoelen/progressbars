@@ -1,6 +1,5 @@
 package sample;
 
-import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
@@ -10,11 +9,15 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.paint.Stop;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Controller implements Initializable {
@@ -40,7 +43,11 @@ public class Controller implements Initializable {
     Button cancelButton;
     //endregion
 
-    ArrayList<Service> threads = new ArrayList<Service>();
+    boolean task1running = false;
+    boolean task2running = false;
+    boolean task3running = false;
+
+    ExecutorService pool = Executors.newFixedThreadPool(3);
     ReentrantLock threadLock = new ReentrantLock();
 
     @Override
@@ -50,156 +57,103 @@ public class Controller implements Initializable {
 
     @FXML
     public void StartCalculation1() {
-        startCalculation(label1, progressBar1, 5);
+        if (!task1running) {
+            startCalculation(label1, progressBar1, 5);
+            task1running = true;
+        }
     }
 
     @FXML
     public void StartCalculation2() {
-        startCalculation(label2, progressBar2, 10);
+        if (!task2running) {
+            startCalculation(label2, progressBar2, 10);
+            task2running = true;
+        }
     }
 
     @FXML
     public void StartCalculation3() {
-        startCalculation(label3, progressBar3, 50);
+        if (!task3running) {
+            startCalculation(label3, progressBar3, 50);
+            task3running = true;
+        }
     }
 
 
     private void startCalculation(Label outputLabel, ProgressBar outputProgressbar, int countTo) {
-        Service<Void> backgroundThread = new Service<Void>() {
-            @Override
-            protected Task<Void> createTask() {
-                return new Task<Void>() {
+        Task t = new CountToXThread(multiplier.isSelected(), countTo);
 
-                    @Override
-                    protected Void call() throws Exception {
-
-                        int counter = countTo;
-
-                        if (multiplier.isSelected()) counter *= 2;
-
-                        for (int i = 0; i <= counter; i++) {
-                            System.out.println("Progress: " + i);
-                            updateMessage("Progress: " + i + " out of " + counter);
-                            updateProgress(i, counter);
-                            Thread.sleep(1000);
-                        }
-
-                        return null;
-                    } // End call()
-                }; // End new Task<Void>
-            } // End createTask()
-        }; // End new Service<Void>
-
-        threadLock.lock();
-        try {
-            threads.add(backgroundThread);
-        } finally {
-            threadLock.unlock();
-        }
-
-        backgroundThread.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+        t.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
             @Override
             public void handle(WorkerStateEvent event) {
-                outputLabel.textProperty().unbind();
-                outputProgressbar.progressProperty().unbind();
-
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
 
-                outputLabel.setText("Thread voltooid");
-                outputProgressbar.setProgress(0);
-
-                threadLock.lock();
-                try {
-                    threads.remove(backgroundThread);
-                } finally {
-                    threadLock.unlock();
-                }
+                unbindGui(outputLabel, outputProgressbar);
             }
         });
 
-        backgroundThread.setOnCancelled(new EventHandler<WorkerStateEvent>() {
+        t.setOnCancelled(new EventHandler<WorkerStateEvent>() {
             @Override
             public void handle(WorkerStateEvent event) {
-                outputLabel.textProperty().unbind();
-                outputProgressbar.progressProperty().unbind();
-
-                outputLabel.setText("Thread gestopt");
-                outputProgressbar.setProgress(0);
-
-                threadLock.lock();
-                try {
-                    threads.remove(backgroundThread);
-                } finally {
-                    threadLock.unlock();
-                }
+                unbindGui(outputLabel, outputProgressbar);
             }
         });
 
-        outputLabel.textProperty().bind(backgroundThread.messageProperty());
-        outputProgressbar.progressProperty().bind(backgroundThread.progressProperty());
+        outputLabel.textProperty().bind(t.messageProperty());
+        outputProgressbar.progressProperty().bind(t.progressProperty());
 
-        backgroundThread.start();
+        pool.execute(t);
     }
-
 
     @FXML
     public void StopThreads() {
         cancelAllThreads();
 
-        boolean hasRunningThread = removeStoppedThreads();
+        unbindAllGui();
+    }
 
-        if (hasRunningThread) {
-            System.out.println("A thread is still running. Try again.");
-            StopThreads();
-        } else {
-            System.out.println("0 threads are running.");
+    private void unbindAllGui() {
+        unbindGui(label1, progressBar1);
+        unbindGui(label2, progressBar2);
+        unbindGui(label3, progressBar3);
+    }
+
+    private void unbindGui(Label label, ProgressBar progressBar) {
+        if (label.getId().equals("label1")) {
+            this.task1running = false;
         }
+        if (label.getId().equals("label2")) {
+            this.task2running = false;
+        }
+        if (label.getId().equals("label3")) {
+            this.task3running = false;
+        }
+
+        label.textProperty().unbind();
+        progressBar.progressProperty().unbind();
+
+        label.setText("Thread gestopt");
+        progressBar.setProgress(0);
     }
 
     private synchronized void cancelAllThreads() {
-        threadLock.lock();
-        try {
-            for (Service service : threads) {
-                service.cancel();
-            }
-        } finally {
-            threadLock.unlock();
-
-        }
-    }
-
-    private boolean removeStoppedThreads() {
-        boolean hasRunningThread = false;
-
-        threadLock.lock();
-        try {
-            // Use iterator so entries can be removed while looping through
-            Iterator<Service> serviceIterator = threads.iterator();
-            while (serviceIterator.hasNext()) {
-                Service ser = serviceIterator.next();
-                hasRunningThread = ser.isRunning();
-                if (!ser.isRunning()) serviceIterator.remove();
-            }
-        } finally {
-            threadLock.unlock();
+        List<Runnable> wereRunning = pool.shutdownNow();
+        while (wereRunning.size() > 0) {
+            wereRunning = pool.shutdownNow();
         }
 
-        return hasRunningThread;
+        pool.shutdown();
+        this.pool = Executors.newFixedThreadPool(3);
+        System.out.println("All threads stopped. ");
     }
 
     @FXML
     public void toggleMultiplier() {
-        try {
-            System.out.println("Restarting threads with multiplier");
-            for (Service s : threads) {
-                s.restart();
-            }
-        } finally {
-            threadLock.unlock();
-        }
+        cancelAllThreads();
+        unbindAllGui();
     }
 }
