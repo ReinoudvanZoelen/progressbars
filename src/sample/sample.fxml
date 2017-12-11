@@ -16,7 +16,7 @@
     <children>
         <Pane prefHeight="239.0" prefWidth="700.0">
             <children>
-                <Label fx:id="label1" layoutX="34.0" layoutY="42.0" prefHeight="21.0" prefWidth="200.0" text="Label" />
+                <Label fx:id="label1" layoutX="34.0" layoutY="42.0" prefHeight="21.0" prefWidth="200.0" text="Label" />§
                 <ProgressBar fx:id="progressBar1" layoutX="34.0" layoutY="86.0" prefWidth="200.0" progress="0.0" />
                 <Button layoutX="34.0" layoutY="129.0" mnemonicParsing="false" onAction="#StartCalculation1" prefHeight="31.0" prefWidth="200.0" text="Count to 5" />
 

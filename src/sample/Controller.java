@@ -15,6 +15,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ResourceBundle;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Controller implements Initializable {
 
@@ -40,6 +41,7 @@ public class Controller implements Initializable {
     //endregion
 
     ArrayList<Service> threads = new ArrayList<Service>();
+    ReentrantLock threadLock = new ReentrantLock();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -73,7 +75,7 @@ public class Controller implements Initializable {
 
                         int counter = countTo;
 
-                        if(multiplier.isSelected()) counter *= 2;
+                        if (multiplier.isSelected()) counter *= 2;
 
                         for (int i = 0; i <= counter; i++) {
                             System.out.println("Progress: " + i);
@@ -88,7 +90,12 @@ public class Controller implements Initializable {
             } // End createTask()
         }; // End new Service<Void>
 
-        threads.add(backgroundThread);
+        threadLock.lock();
+        try {
+            threads.add(backgroundThread);
+        } finally {
+            threadLock.unlock();
+        }
 
         backgroundThread.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
             @Override
@@ -102,13 +109,35 @@ public class Controller implements Initializable {
                     e.printStackTrace();
                 }
 
-                outputLabel.setText("Label");
+                outputLabel.setText("Thread voltooid");
                 outputProgressbar.setProgress(0);
 
-                threads.remove(backgroundThread);
+                threadLock.lock();
+                try {
+                    threads.remove(backgroundThread);
+                } finally {
+                    threadLock.unlock();
+                }
             }
         });
 
+        backgroundThread.setOnCancelled(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent event) {
+                outputLabel.textProperty().unbind();
+                outputProgressbar.progressProperty().unbind();
+
+                outputLabel.setText("Thread gestopt");
+                outputProgressbar.setProgress(0);
+
+                threadLock.lock();
+                try {
+                    threads.remove(backgroundThread);
+                } finally {
+                    threadLock.unlock();
+                }
+            }
+        });
 
         outputLabel.textProperty().bind(backgroundThread.messageProperty());
         outputProgressbar.progressProperty().bind(backgroundThread.progressProperty());
@@ -119,33 +148,58 @@ public class Controller implements Initializable {
 
     @FXML
     public void StopThreads() {
+        cancelAllThreads();
 
-        for (Service service : threads) {
-            service.cancel();
-        }
-
-        boolean hasRunningThread = false;
-
-        // Use iterator so entries can be removed
-        Iterator<Service> serviceIterator = threads.iterator();
-        while (serviceIterator.hasNext()) {
-            Service ser = serviceIterator.next();
-            hasRunningThread = ser.isRunning();
-            if (!ser.isRunning()) serviceIterator.remove();
-        }
+        boolean hasRunningThread = removeStoppedThreads();
 
         if (hasRunningThread) {
             System.out.println("A thread is still running. Try again.");
+            StopThreads();
         } else {
             System.out.println("0 threads are running.");
         }
     }
 
+    private synchronized void cancelAllThreads() {
+        threadLock.lock();
+        try {
+            for (Service service : threads) {
+                service.cancel();
+            }
+        } finally {
+            threadLock.unlock();
+
+        }
+    }
+
+    private boolean removeStoppedThreads() {
+        boolean hasRunningThread = false;
+
+        threadLock.lock();
+        try {
+            // Use iterator so entries can be removed while looping through
+            Iterator<Service> serviceIterator = threads.iterator();
+            while (serviceIterator.hasNext()) {
+                Service ser = serviceIterator.next();
+                hasRunningThread = ser.isRunning();
+                if (!ser.isRunning()) serviceIterator.remove();
+            }
+        } finally {
+            threadLock.unlock();
+        }
+
+        return hasRunningThread;
+    }
+
     @FXML
-    public void toggleMultiplier(){
-        System.out.println("Restarting threads with multiplier");
-        for(Service s:threads){
-            s.restart();
+    public void toggleMultiplier() {
+        try {
+            System.out.println("Restarting threads with multiplier");
+            for (Service s : threads) {
+                s.restart();
+            }
+        } finally {
+            threadLock.unlock();
         }
     }
 }
